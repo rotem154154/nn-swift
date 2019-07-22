@@ -11,63 +11,99 @@ import Accelerate
 
 
 class dense{
-  var input_size : Int
-  var hidden_size : Int
-  var output_size : Int
-  var weights1 : [Float32]
-  var weights2 : [Float32]
-  var input_descriptor : BNNSVectorDescriptor
-  var hidden_descriptor : BNNSVectorDescriptor
-  var output_descriptor : BNNSVectorDescriptor
-  var filter1 : BNNSFilter
-  var filter2 : BNNSFilter
-  var filter1LayerParameters = BNNSFullyConnectedLayerParameters()
-  var filter2LayerParameters = BNNSFullyConnectedLayerParameters()
-  var input_stack : [Float32]
-  var hidden_stack : [Float32]
-  var output_stack : [Float32]
+  var num_layers : Int
+  var layers_sizes : [Int] = []
+  var weights : [[Float32]] = []
+  var stacks : [[Float32]] = []
+  var layers_descriptor : [BNNSVectorDescriptor] = []
+  var filters : [BNNSFilter] = []
+  var filters_parameters : [BNNSFullyConnectedLayerParameters] = []
   
-  init(input_size : Int, hidden_size : Int, output_size : Int) {
-    self.input_size = input_size
-    self.hidden_size = hidden_size
-    self.output_size = output_size
+  init(layers_sizes : [Int]) {
+    self.num_layers = layers_sizes.count
+    self.layers_sizes = layers_sizes
     
-    self.input_descriptor = BNNSVectorDescriptor(size: input_size,data_type: BNNSDataType.float,data_scale: 0,data_bias: 0)
-    self.hidden_descriptor = BNNSVectorDescriptor(size: hidden_size,data_type: BNNSDataType.float,data_scale: 0,data_bias: 0)
-    self.output_descriptor = BNNSVectorDescriptor(size: output_size,data_type: BNNSDataType.float,data_scale: 0,data_bias: 0)
-    
-    weights1 = []
-    for _ in 0...input_size*hidden_size{
-      weights1.append(Float32.random(in: -1...1))
-    }
-    weights2 = []
-    for _ in 0...hidden_size*output_size{
-      weights2.append(Float32.random(in: -1...1))
+//    self.layers_descriptor = []
+//    self.stacks = []
+    for i in 0..<num_layers{
+      self.layers_descriptor.append(BNNSVectorDescriptor(size: layers_sizes[i], data_type: BNNSDataType.float))
+      self.stacks.append(Array(repeating: Float32(0), count: layers_sizes[i]))
     }
     
-    filter1LayerParameters.in_size = input_size
-    filter1LayerParameters.out_size = hidden_size
-    filter1LayerParameters.activation = BNNSActivation(function: BNNSActivationFunction.rectifiedLinear)
-    filter1LayerParameters.weights = BNNSLayerData(data: weights1, data_type: BNNSDataType.float)
-    filter1 = BNNSFilterCreateFullyConnectedLayer(&input_descriptor, &hidden_descriptor, &filter1LayerParameters, nil)!
-    filter2LayerParameters.in_size = hidden_size
-    filter2LayerParameters.out_size = output_size
-    filter2LayerParameters.activation = BNNSActivation(function: BNNSActivationFunction.softmax)
-    filter2LayerParameters.weights = BNNSLayerData(data: weights2, data_type: BNNSDataType.float)
-    filter2 = BNNSFilterCreateFullyConnectedLayer(&hidden_descriptor, &output_descriptor, &filter2LayerParameters, nil)!
-    print(output_size)
-    input_stack = Array(repeating: 0, count: input_size)
-    hidden_stack = Array(repeating: 0, count: hidden_size)
-    output_stack = Array(repeating: 0, count: output_size)
+//    self.weights = []
+    for i in 0..<num_layers-1{
+      var w : [Float32] = []
+      for _ in 0..<layers_sizes[i]*layers_sizes[i+1]{
+        w.append(Float32(drand48()))
+      }
+      weights.append(w)
+      
+    }
+    
+//    self.filters_parameters = []
+//    self.filters = []
+    for i in 0..<num_layers-1{
+      var fp = BNNSFullyConnectedLayerParameters()
+      fp.in_size = layers_sizes[i]
+      fp.out_size = layers_sizes[i+1]
+      fp.activation = BNNSActivation(function: BNNSActivationFunction.rectifiedLinear)
+      if i == num_layers-2{
+        fp.activation = BNNSActivation(function: BNNSActivationFunction.softmax)
+      }
+      fp.weights = BNNSLayerData(data: weights[i], data_type: BNNSDataType.float)
+      filters_parameters.append(fp)
+      filters.append(BNNSFilterCreateFullyConnectedLayer(&self.layers_descriptor[i], &self.layers_descriptor[i+1], &filters_parameters[i], nil)!)
+    }
+    
   }
   
   func forward(input_stack : [Float32]) -> [Float32] {
-    self.input_stack = input_stack
-    BNNSFilterApply(filter1, &self.input_stack, &self.hidden_stack)
-    BNNSFilterApply(filter2, &self.hidden_stack, &self.output_stack)
-    
-    
-    return output_stack
+    self.stacks[0] = input_stack
+//    for i in 0..<num_layers-1{
+////      print(self.stacks[i])
+//      BNNSFilterApply(filters[i], &self.stacks[i], &self.stacks[i+1])
+//
+//    }
+    switch num_layers {
+    case 2:
+      BNNSFilterApply(filters[0], &self.stacks[0], &self.stacks[1])
+    case 3:
+      BNNSFilterApply(filters[0], &self.stacks[0], &self.stacks[1])
+      BNNSFilterApply(filters[1], &self.stacks[1], &self.stacks[2])
+    case 4:
+      BNNSFilterApply(filters[0], &self.stacks[0], &self.stacks[1])
+      BNNSFilterApply(filters[1], &self.stacks[1], &self.stacks[2])
+      BNNSFilterApply(filters[2], &self.stacks[2], &self.stacks[3])
+    case 5:
+      BNNSFilterApply(filters[0], &self.stacks[0], &self.stacks[1])
+      BNNSFilterApply(filters[1], &self.stacks[1], &self.stacks[2])
+      BNNSFilterApply(filters[2], &self.stacks[2], &self.stacks[3])
+      BNNSFilterApply(filters[3], &self.stacks[3], &self.stacks[4])
+    case 6:
+      BNNSFilterApply(filters[0], &self.stacks[0], &self.stacks[1])
+      BNNSFilterApply(filters[1], &self.stacks[1], &self.stacks[2])
+      BNNSFilterApply(filters[2], &self.stacks[2], &self.stacks[3])
+      BNNSFilterApply(filters[3], &self.stacks[3], &self.stacks[4])
+      BNNSFilterApply(filters[4], &self.stacks[4], &self.stacks[5])
+    case 7:
+      BNNSFilterApply(filters[0], &self.stacks[0], &self.stacks[1])
+      BNNSFilterApply(filters[1], &self.stacks[1], &self.stacks[2])
+      BNNSFilterApply(filters[2], &self.stacks[2], &self.stacks[3])
+      BNNSFilterApply(filters[3], &self.stacks[3], &self.stacks[4])
+      BNNSFilterApply(filters[4], &self.stacks[4], &self.stacks[5])
+      BNNSFilterApply(filters[5], &self.stacks[5], &self.stacks[6])
+    case 8:
+      BNNSFilterApply(filters[0], &self.stacks[0], &self.stacks[1])
+      BNNSFilterApply(filters[1], &self.stacks[1], &self.stacks[2])
+      BNNSFilterApply(filters[2], &self.stacks[2], &self.stacks[3])
+      BNNSFilterApply(filters[3], &self.stacks[3], &self.stacks[4])
+      BNNSFilterApply(filters[4], &self.stacks[4], &self.stacks[5])
+      BNNSFilterApply(filters[5], &self.stacks[5], &self.stacks[6])
+      BNNSFilterApply(filters[6], &self.stacks[6], &self.stacks[7])
+    default:
+      print("too much layers")
+    }
+    return stacks.last!
   }
   
   
