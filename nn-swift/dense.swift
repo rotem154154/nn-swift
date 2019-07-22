@@ -14,20 +14,28 @@ class dense{
   var input_size : Int
   var hidden_size : Int
   var output_size : Int
+  var weights1 : [Float32]
+  var weights2 : [Float32]
   var input_descriptor : BNNSVectorDescriptor
   var hidden_descriptor : BNNSVectorDescriptor
   var output_descriptor : BNNSVectorDescriptor
-  var weights1 : [Float32]
-  var weights2 : [Float32]
-  
+  var filter1 : BNNSFilter
+  var filter2 : BNNSFilter
+  var filter1LayerParameters = BNNSFullyConnectedLayerParameters()
+  var filter2LayerParameters = BNNSFullyConnectedLayerParameters()
+  var input_stack : [Float32]
+  var hidden_stack : [Float32]
+  var output_stack : [Float32]
   
   init(input_size : Int, hidden_size : Int, output_size : Int) {
     self.input_size = input_size
     self.hidden_size = hidden_size
     self.output_size = output_size
+    
     self.input_descriptor = BNNSVectorDescriptor(size: input_size,data_type: BNNSDataType.float,data_scale: 0,data_bias: 0)
     self.hidden_descriptor = BNNSVectorDescriptor(size: hidden_size,data_type: BNNSDataType.float,data_scale: 0,data_bias: 0)
     self.output_descriptor = BNNSVectorDescriptor(size: output_size,data_type: BNNSDataType.float,data_scale: 0,data_bias: 0)
+    
     weights1 = []
     for _ in 0...input_size*hidden_size{
       weights1.append(Float32.random(in: -1...1))
@@ -37,7 +45,32 @@ class dense{
       weights2.append(Float32.random(in: -1...1))
     }
     
+    filter1LayerParameters.in_size = input_size
+    filter1LayerParameters.out_size = hidden_size
+    filter1LayerParameters.activation = BNNSActivation(function: BNNSActivationFunction.rectifiedLinear)
+    filter1LayerParameters.weights = BNNSLayerData(data: weights1, data_type: BNNSDataType.float)
+    filter1 = BNNSFilterCreateFullyConnectedLayer(&input_descriptor, &hidden_descriptor, &filter1LayerParameters, nil)!
+    filter2LayerParameters.in_size = hidden_size
+    filter2LayerParameters.out_size = output_size
+    filter2LayerParameters.activation = BNNSActivation(function: BNNSActivationFunction.softmax)
+    filter2LayerParameters.weights = BNNSLayerData(data: weights2, data_type: BNNSDataType.float)
+    filter2 = BNNSFilterCreateFullyConnectedLayer(&hidden_descriptor, &output_descriptor, &filter2LayerParameters, nil)!
+    print(output_size)
+    input_stack = Array(repeating: 0, count: input_size)
+    hidden_stack = Array(repeating: 0, count: hidden_size)
+    output_stack = Array(repeating: 0, count: output_size)
   }
+  
+  func forward(input_stack : [Float32]) -> [Float32] {
+    self.input_stack = input_stack
+    BNNSFilterApply(filter1, &self.input_stack, &self.hidden_stack)
+    BNNSFilterApply(filter2, &self.hidden_stack, &self.output_stack)
+    
+    
+    return output_stack
+  }
+  
+  
 }
 
 

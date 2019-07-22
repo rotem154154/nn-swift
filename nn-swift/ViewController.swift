@@ -16,8 +16,9 @@ class ViewController: UIViewController {
     super.viewDidLoad()
     
     
-    var model = dense(input_size: 3, hidden_size: 4, output_size: 1)
-    print(model.weights1)
+    var model = dense(input_size: 3, hidden_size: 4, output_size: 4)
+    var out = model.forward(input_stack: [-0.1,-0.51,0])
+    print(out)
     
     var inputDescriptor = BNNSVectorDescriptor(size: 3,
                                                data_type: BNNSDataType.float,
@@ -91,9 +92,9 @@ class ViewController: UIViewController {
     BNNSFilterApplyBatch(filter1, 4, &inputStack, inputDescriptor.size, &hiddenStack, hiddenDescriptor.size)
     BNNSFilterApplyBatch(filter2, 4, &hiddenStack, hiddenDescriptor.size, &outputStack, outputDescriptor.size)
     
-    outputStack.forEach { (output) in
-      print(output)
-    }
+//    outputStack.forEach { (output) in
+//      print(output)
+//    }
     
     
     
