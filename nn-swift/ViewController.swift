@@ -16,9 +16,15 @@ class ViewController: UIViewController {
     super.viewDidLoad()
     
     
-    var model = dense(input_size: 3, hidden_size: 4, output_size: 4)
-    var out = model.forward(input_stack: [-0.1,-0.51,0])
+    var model = dense(layers_sizes: [3,4,4,3,7])
+    var input_stack = Array(repeating: Float32(0.0), count: model.layers_sizes[0])
+    for i in 0..<model.layers_sizes[0]{
+      input_stack[i] = Float32(drand48())
+    }
+    
+    var out = model.forward(input_stack: input_stack)
     print(out)
+    
     
     var inputDescriptor = BNNSVectorDescriptor(size: 3,
                                                data_type: BNNSDataType.float,
