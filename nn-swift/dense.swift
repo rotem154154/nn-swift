@@ -3,7 +3,7 @@
 //  nn_diy
 //
 //  Created by rotem israeli on 21/07/2019.
-//  Copyright © 2019 TandR. All rights reserved.
+//  Copyri/Users/rotemisraeli/Documents/xcode/nn-swift/nn-swift/dense.swiftght © 2019 TandR. All rights reserved.
 //
 
 import Foundation
@@ -56,14 +56,27 @@ class dense{
     }
     
   }
-  
+  func random_weights(){
+    for i in 0..<num_layers-1{
+      for w in 0..<self.weights[i].count{
+        self.weights[i][w] = Float32(drand48())
+      }
+      self.filters_parameters[i].weights = BNNSLayerData(data: self.weights[i], data_type: BNNSDataType.float)
+      self.filters[i] = BNNSFilterCreateFullyConnectedLayer(&self.layers_descriptor[i], &self.layers_descriptor[i+1], &filters_parameters[i], nil)!
+    }
+  }
+  func mutate(alpha : Float32){
+    for i in 0..<num_layers-1{
+      for w in 0..<self.weights[i].count{
+        self.weights[i][w] += Float32(drand48()-0.5)*alpha
+      }
+      self.filters_parameters[i].weights = BNNSLayerData(data: self.weights[i], data_type: BNNSDataType.float)
+      self.filters[i] = BNNSFilterCreateFullyConnectedLayer(&self.layers_descriptor[i], &self.layers_descriptor[i+1], &filters_parameters[i], nil)!
+    }
+  }
   func forward(input_stack : [Float32]) -> [Float32] {
     self.stacks[0] = input_stack
-//    for i in 0..<num_layers-1{
-////      print(self.stacks[i])
-//      BNNSFilterApply(filters[i], &self.stacks[i], &self.stacks[i+1])
-//
-//    }
+    
     switch num_layers {
     case 2:
       BNNSFilterApply(filters[0], &self.stacks[0], &self.stacks[1])

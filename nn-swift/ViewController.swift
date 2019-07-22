@@ -16,14 +16,15 @@ class ViewController: UIViewController {
     super.viewDidLoad()
     
     
-    let model = dense(layers_sizes: [3,4,4,3,7])
+    let model = dense(layers_sizes: [3,4,5,3])
     
-    let input = Array(repeating: Float32(0.0), count: model.layers_sizes[0])
+    let input : [Float32] = [0,1,1]
     
-    let out = model.forward(input_stack: input)
+    model.random_weights()
     
-    print(out)
+    model.mutate(alpha: 0.01)
     
+    print(model.forward(input_stack: input))
     
     
     
