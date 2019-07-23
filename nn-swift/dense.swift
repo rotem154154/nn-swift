@@ -118,6 +118,14 @@ class dense{
     }
     return stacks.last!
   }
-  
+  func save_weights(key : String){
+    let defaults = UserDefaults.standard
+    defaults.set(weights, forKey: key)
+  }
+  func load_weights(key : String){
+    let defaults = UserDefaults.standard
+    let array = defaults.array(forKey: key)  as? [[Float32]] ?? [[Float32]]()
+    weights = array
+  }
   
 }

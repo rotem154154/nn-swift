@@ -26,9 +26,8 @@ class ViewController: UIViewController {
     
     print(model.forward(input_stack: input))
     
-    
-    
-    
+    model.save_weights(key: "weights1")
+    model.load_weights(key: "weights1")
     
   }
   
